@@ -3,11 +3,11 @@ package server;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SimpleAuthService implements AuthService {
+public class SQLiteAuthService implements AuthService {
 
     private List<UserData> users;
 
-    public SimpleAuthService() {
+    public SQLiteAuthService() {
         fillUserList();
     }
 
@@ -29,27 +29,19 @@ public class SimpleAuthService implements AuthService {
                 return false;
             }
         }
-        users.add(new UserData(login, password, nickname));
+        Long newUserId = DBTools.createUser(login, password, nickname);
+        users.add(new UserData(newUserId, login, password, nickname));
         return true;
     }
 
     @Override
     public void fillUserList() {
-        this.users = new ArrayList<>();
-
-        for (int i = 1; i <= 10 ; i++) {
-            users.add(new UserData("login"+i, "pass"+i, "nick"+i));
-        }
-
-        for (int i = 1; i <= 3 ; i++) {
-            users.add(new UserData(""+i, ""+i, "simple_nick"+i));
-        }
+        this.users = DBTools.getUserList();
     }
 
     @Override
     public boolean changeNick(ClientHandler client, String newNick) {
-        return false;
+        return DBTools.changeNick(client.getUserId(), newNick);
     }
-
-
 }
+
