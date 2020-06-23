@@ -13,8 +13,11 @@
 
     <HBox VBox.vgrow="ALWAYS">
         <TextArea fx:id="textArea"  editable="false"/>
-        <ListView fx:id="clientList" visible="false" managed="false" minWidth="100"
-        onMouseClicked="#clickClientList"/>
+        <VBox>
+            <ListView fx:id="clientList" visible="false" managed="false" minWidth="100"
+            onMouseClicked="#clickClientList"/>
+            <Button fx:id="changeNick" text="Сменить ник" visible="false" onAction="#changeNick" maxWidth="1000"/>
+        </VBox>
     </HBox>
 
 

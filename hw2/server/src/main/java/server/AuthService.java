@@ -1,6 +1,8 @@
 package server;
 
 public interface AuthService {
-    String getNicknameByLoginAndPassword(String login, String password);
+    UserData getUserByLoginAndPassword(String login, String password);
     boolean registration(String login, String password, String nickname);
+    void fillUserList();
+    boolean changeNick(ClientHandler client, String newNick);
 }

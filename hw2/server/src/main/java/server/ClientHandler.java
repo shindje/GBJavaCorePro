@@ -12,8 +12,7 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
 
-    private String nick;
-    private String login;
+    private UserData user = new UserData();
 
     public ClientHandler(Server server, Socket socket) {
         this.server = server;
@@ -56,17 +55,14 @@ public class ClientHandler {
                                 continue;
                             }
 
-                            String newNick = server.getAuthService()
-                                    .getNicknameByLoginAndPassword(token[1], token[2]);
+                            user = server.getAuthService()
+                                    .getUserByLoginAndPassword(token[1], token[2]);
 
-                            login = token[1];
-
-                            if (newNick != null) {
-                                if (!server.isLoginAuthorized(login)) {
-                                    sendMsg("/authok " + newNick);
-                                    nick = newNick;
+                            if (user != null && user.getNickname() != null) {
+                                if (!server.isLoginAuthorized(user.getLogin())) {
+                                    sendMsg("/authok " + user.getNickname());
                                     server.subscribe(this);
-                                    System.out.println("Клиент: " + nick + " подключился"+ socket.getRemoteSocketAddress());
+                                    System.out.println("Клиент: " + user.getNickname() + " подключился"+ socket.getRemoteSocketAddress());
                                     socket.setSoTimeout(0);
                                     break;
                                 } else {
@@ -96,8 +92,23 @@ public class ClientHandler {
 
                                 server.privateMsg(this, token[1], token[2]);
                             }
+                            if (str.startsWith("/nick ")) {
+                                String[] token = str.split(" ");
+                                if (token.length < 2) {
+                                    sendMsg("Введите новый ник");
+                                } else {
+                                    String newNick = token[1];
+                                    boolean res = server.changeNick(this, newNick);
+                                    if (res) {
+                                        sendMsg("Ваш ник изменен на " + newNick);
+                                    } else {
+                                        sendMsg("Ошибка изменения ника");
+                                    }
+
+                                }
+                            }
                         } else {
-                            server.broadcastMsg(nick, str);
+                            server.broadcastMsg(user, str);
                         }
                     }
                 }catch (SocketTimeoutException e){
@@ -132,10 +143,18 @@ public class ClientHandler {
     }
 
     public String getNick() {
-        return nick;
+        return user.getNickname();
+    }
+
+    public void setNick(String nick) {
+        user.setNickname(nick);
     }
 
     public String getLogin() {
-        return login;
+        return user.getLogin();
+    }
+
+    public Long getUserId() {
+        return user.getId();
     }
 }

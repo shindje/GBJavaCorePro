@@ -1,6 +1,8 @@
 package server;
 
 
+import org.sqlite.core.DB;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -14,7 +16,7 @@ public class Server {
 
     public Server() {
         clients = new Vector<>();
-        authService = new SimpleAuthService();
+        authService = new SQLiteAuthService();
         ServerSocket server = null;
         Socket socket;
 
@@ -41,10 +43,11 @@ public class Server {
         }
     }
 
-    public void broadcastMsg(String nick, String msg) {
+    public void broadcastMsg(UserData user, String msg) {
         for (ClientHandler c : clients) {
-            c.sendMsg(nick + ": " + msg);
+            c.sendMsg(user.getNickname() + ": " + msg);
         }
+        DBTools.addToHistory(user.getId(), null, msg);
     }
 
     public void privateMsg(ClientHandler sender, String receiver, String msg) {
@@ -57,6 +60,7 @@ public class Server {
                 if (!sender.getNick().equals(receiver)) {
                     sender.sendMsg(message);
                 }
+                DBTools.addToHistory(sender.getUserId(), c.getUserId(), msg);
                 return;
             }
         }
@@ -67,6 +71,10 @@ public class Server {
 
     public void subscribe(ClientHandler clientHandler) {
         clients.add(clientHandler);
+        List<String> history = DBTools.getHistory(clientHandler.getUserId());
+        for (String str: history) {
+            clientHandler.sendMsg(str);
+        }
         broadcastClientList();
     }
 
@@ -99,5 +107,15 @@ public class Server {
         for (ClientHandler c : clients) {
             c.sendMsg(msg);
         }
+    }
+
+    boolean changeNick(ClientHandler client, String newNick) {
+        boolean res = authService.changeNick(client, newNick);
+        if (res) {
+            authService.fillUserList();
+            client.setNick(newNick);
+            broadcastClientList();
+        }
+        return res;
     }
 }
