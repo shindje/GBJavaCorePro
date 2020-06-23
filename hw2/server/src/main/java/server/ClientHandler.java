@@ -107,6 +107,10 @@ public class ClientHandler {
 
                                 }
                             }
+                            if (str.startsWith("/history ")) {
+                                String[] token = str.split(" ");
+                                server.sendHistory(this, Integer.parseInt(token[1]));
+                            }
                         } else {
                             server.broadcastMsg(user, str);
                         }
