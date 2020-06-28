@@ -23,12 +23,16 @@ public class DBTools {
             psAddToHistory = connection.prepareStatement(
                     "INSERT INTO chat_history(send_user_id, to_user_id, message) VALUES(?, ?, ?)");
             psGetHistory = connection.prepareStatement(
-                    "SELECT send_user.nickname as send_nick, to_user.nickname as to_nick, h.message " +
-                    "FROM chat_history h " +
-                    "JOIN users send_user on send_user.id = h.send_user_id " +
-                    "LEFT JOIN users to_user on to_user.id = h.to_user_id " +
-                    "WHERE to_user_id is null OR send_user_id = ? OR to_user_id = ? " +
-                    "ORDER BY h.id");
+                    "SELECT * FROM (" +
+                        "SELECT send_user.nickname as send_nick, to_user.nickname as to_nick, h.message, h.id " +
+                        "FROM chat_history h " +
+                        "JOIN users send_user on send_user.id = h.send_user_id " +
+                        "LEFT JOIN users to_user on to_user.id = h.to_user_id " +
+                        "WHERE to_user_id is null OR send_user_id = ? OR to_user_id = ? " +
+                        "ORDER BY h.id DESC " +
+                        "LIMIT ? " +
+                    ") " +
+                    "ORDER BY id");
             psCreateUser = connection.prepareStatement(
                     "INSERT INTO users(login, password, nickname) " +
                     "VALUES(?, ?, ?)",
@@ -138,12 +142,13 @@ public class DBTools {
         }
     }
 
-    static List<String> getHistory(Long userId) {
+    static List<String> getHistory(Long userId, int limit) {
         List<String> history = new ArrayList<>();
         try {
             getConnection();
             psGetHistory.setLong(1, userId);
             psGetHistory.setLong(2, userId);
+            psGetHistory.setInt(3, limit);
             try (ResultSet rs = psGetHistory.executeQuery()) {
                 while (rs.next()) {
                     if (rs.getString("to_nick") == null) {

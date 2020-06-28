@@ -71,11 +71,14 @@ public class Server {
 
     public void subscribe(ClientHandler clientHandler) {
         clients.add(clientHandler);
-        List<String> history = DBTools.getHistory(clientHandler.getUserId());
+        broadcastClientList();
+    }
+
+    public void sendHistory(ClientHandler clientHandler, int limit) {
+        List<String> history = DBTools.getHistory(clientHandler.getUserId(), limit);
         for (String str: history) {
             clientHandler.sendMsg(str);
         }
-        broadcastClientList();
     }
 
     public void unsubscribe(ClientHandler clientHandler) {

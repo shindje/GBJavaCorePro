@@ -16,9 +16,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -52,6 +50,8 @@ public class Controller implements Initializable {
 
     private boolean authenticated;
     private String nick;
+
+    private final static int HISTORY_LINES_NUMBER = 100;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -114,6 +114,10 @@ public class Controller implements Initializable {
                         if (str.startsWith("/authok ")) {
                             nick = str.split(" ")[1];
                             setAuthenticated(true);
+                            //Если нет локальной истории, то запросим её с сервера
+                            if (!getLocalHistory()) {
+                                out.writeUTF("/history " + HISTORY_LINES_NUMBER);
+                            }
                             break;
                         }
 
@@ -140,7 +144,10 @@ public class Controller implements Initializable {
                             }
 
                         } else {
-                            textArea.appendText(str + "\n");
+                            Platform.runLater(() -> {
+                                textArea.appendText(str + "\n");
+                            });
+                            addToLocalHisotry(str);
                         }
                     }
                 }catch (RuntimeException e){
@@ -242,5 +249,61 @@ public class Controller implements Initializable {
 
     public void changeNick(ActionEvent actionEvent) {
         textField.setText("/nick ");
+    }
+
+    private void addToLocalHisotry(String message){
+        String login = loginField.getText().trim();
+        File history = new File("history_" + login + ".txt");
+        try {
+            history.createNewFile();
+            try (FileWriter out = new FileWriter(history, true)) {
+                if (history.length() > 0) {
+                    out.write("\n");
+                }
+                out.write(message);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean getLocalHistory() {
+        String login = loginField.getText().trim();
+        File history = new File("history_" + login + ".txt");
+        if (history.exists()) {
+            try (RandomAccessFile  in = new RandomAccessFile (history, "r")) {
+                in.seek(in.length()-1);
+                boolean stop = false;
+                int linesCnt = 0;
+                while (!stop) {
+                    int c = in.read();
+                    if (c == '\n') {
+                        linesCnt ++;
+                        if (linesCnt == HISTORY_LINES_NUMBER) {
+                            stop = true;
+                        }
+                    }
+                    if (!stop) {
+                        if (in.getFilePointer() - 2 < 0) {
+                            stop = true;
+                        } else {
+                            in.seek(in.getFilePointer() - 2);
+                        }
+                    }
+                }
+                while (in.getFilePointer() != in.length()) {
+                    String line = in.readLine();
+                    Platform.runLater(() -> {
+                        textArea.appendText(line + "\n");
+                    });
+                }
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 }
