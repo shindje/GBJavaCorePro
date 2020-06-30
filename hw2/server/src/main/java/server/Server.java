@@ -8,15 +8,22 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Server {
     private List<ClientHandler> clients;
     private AuthService authService;
+    private ExecutorService executor;
 
     public Server() {
         clients = new Vector<>();
         authService = new SQLiteAuthService();
+        //SingleThreadExecutor и FixedThreadPool не подходят, т.к. все клиенты должны обрабатываться одновременно
+        //Использование ExecutorService оправдано, если клиенты будут отключаться и подключаться.
+        //При подключении нового клиента будет взят поток из пула, если какой-нибудь клиент отключился
+        executor = Executors.newCachedThreadPool();
         ServerSocket server = null;
         Socket socket;
 
@@ -35,6 +42,7 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            executor.shutdown();
             try {
                 server.close();
             } catch (IOException e) {
@@ -120,5 +128,10 @@ public class Server {
             broadcastClientList();
         }
         return res;
+    }
+
+    public void addTask(Runnable r) {
+        executor.execute(r);
+        System.out.println("Taks added " + executor.toString());
     }
 }
