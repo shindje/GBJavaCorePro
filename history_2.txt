@@ -99,3 +99,23 @@
 111111: wrt
 111111: ffff
 [ simple_nick3 ] private [ my_nick2 ] : ffefw
+my_nick2: fwefwe
+my_nick2: ergerg
+simple_nick3: 343434
+my_nick2: fwef
+111111: svdvsd
+my_nick2: fvfdv
+111111: dfddf
+my_nick2: grgr
+111111: fefe
+my_nick2: wdqwdqw
+my_nick2: dddd
+[ my_nick2 ] private [ simple_nick3 ] : dss
+my_nick2: wefwef
+my_nick2: fewef
+111111: werwer
+simple_nick3: hrthrt
+my_nick2: 222
+simple_nick3: 333
+111111: 111
+my_nick2: eded
