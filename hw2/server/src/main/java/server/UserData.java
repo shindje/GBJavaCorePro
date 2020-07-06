@@ -40,4 +40,10 @@ class UserData {
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }
+
+    @Override
+    public String toString() {
+        return "login='" + login + '\'' +
+                ", nickname='" + nickname + '\'';
+    }
 }
