@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.logging.*;
 
 public class ClientHandler {
     private Server server;
@@ -13,8 +14,12 @@ public class ClientHandler {
     private DataOutputStream out;
 
     private UserData user = new UserData();
+    private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
 
     public ClientHandler(Server server, Socket socket) {
+        if (logger.getHandlers().length == 0)
+            server.prepareLogger(logger);
+
         this.server = server;
         this.socket = socket;
         try {
@@ -29,6 +34,7 @@ public class ClientHandler {
                     //цикл аутентификации
                     while (true) {
                         String str = in.readUTF();
+                        logger.fine("message [" + socket.getRemoteSocketAddress() + "]: " + str);
 
                         if (str.startsWith("/reg ")) {
                             String[] token = str.split(" ");
@@ -42,9 +48,11 @@ public class ClientHandler {
                                     .registration(token[1], token[2], token[3]);
                             if (succeed) {
                                 sendMsg("Регистрация прошла успешно");
+                                logger.info("reg ok: " + token[1]);
                             } else {
                                 sendMsg("Регистрация  не удалась. \n" +
                                         "Возможно логин уже занят, или данные содержат пробел");
+                                logger.info("reg fail: " + token[1] + ", " + token[2] + ", " + token[3]);
                             }
                         }
 
@@ -62,14 +70,16 @@ public class ClientHandler {
                                 if (!server.isLoginAuthorized(user.getLogin())) {
                                     sendMsg("/authok " + user.getNickname());
                                     server.subscribe(this);
-                                    System.out.println("Клиент: " + user.getNickname() + " подключился"+ socket.getRemoteSocketAddress());
+                                    logger.info("authok " + user);
                                     socket.setSoTimeout(0);
                                     break;
                                 } else {
                                     sendMsg("С этим логином уже прошли аутентификацию");
+                                    logger.info("auth fail1 : " + token[1] + ", " + token[2]);
                                 }
                             } else {
                                 sendMsg("Неверный логин / пароль");
+                                logger.info("auth fail2 : " + token[1] + ", " + token[2]);
                             }
                         }
                     }
@@ -77,6 +87,7 @@ public class ClientHandler {
                     //цикл работы
                     while (true) {
                         String str = in.readUTF();
+                        logger.fine("message [" + user + "]: " + str);
 
                         if (str.startsWith("/")) {
                             if (str.equals("/end")) {
@@ -117,17 +128,20 @@ public class ClientHandler {
                     }
                 }catch (SocketTimeoutException e){
                     sendMsg("/end");
+                    logger.warning("SocketTimeoutException: " + e.getMessage());
                 }
                 ///////
                 catch (IOException e) {
                     e.printStackTrace();
+                    logger.warning("IOException во время работы: " + e.getMessage());
                 } finally {
                     server.unsubscribe(this);
-                    System.out.println("Клиент отключился");
+                    logger.info("Клиент отключился " + socket.getRemoteSocketAddress());
                     try {
                         socket.close();
                     } catch (IOException e) {
                         e.printStackTrace();
+                        logger.warning("IOException при отключении: " + e.getMessage());
                     }
                 }
             });
@@ -135,6 +149,7 @@ public class ClientHandler {
 
         } catch (IOException e) {
             e.printStackTrace();
+            logger.warning("IOException: " + e.getMessage());
         }
     }
 
@@ -160,5 +175,9 @@ public class ClientHandler {
 
     public Long getUserId() {
         return user.getId();
+    }
+
+    public UserData getUser() {
+        return user;
     }
 }
